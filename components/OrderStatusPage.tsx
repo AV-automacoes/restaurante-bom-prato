@@ -1,7 +1,7 @@
 
 
 import React, { useState } from 'react';
-import { Order, OrderStatus, CustomizationOption } from '../types';
+import { Order, OrderStatus, CustomizationOption, CartItem } from '../types';
 
 interface OrderStatusPageProps {
     order: Order;
@@ -93,7 +93,7 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ order, onReturnToMenu
         setIsRatingSubmitted(true);
     };
     
-    const subtotal = order.items.reduce((acc, item) => acc + (item.totalPrice * item.quantity), 0);
+    const subtotal = order.items.reduce((acc: number, item: CartItem) => acc + (item.totalPrice * item.quantity), 0);
     
     const formattedAddress = () => {
         const { streetAndNumber, neighborhood, apartmentDetails, landmark } = order.customerInfo;
@@ -148,7 +148,7 @@ const OrderStatusPage: React.FC<OrderStatusPageProps> = ({ order, onReturnToMenu
                                     <p>R$ {(item.basePrice * item.quantity).toFixed(2)}</p>
                                 </div>
                                 <div className="pl-4 text-sm text-gray-600">
-                                    {/* FIX: Add explicit type to `opt` to resolve TypeScript errors. */}
+                                    
                                     {Object.values(item.customizations).flat().map((opt: CustomizationOption) => (
                                         <div key={opt.id} className="flex justify-between">
                                             <span>- {opt.name}</span>
