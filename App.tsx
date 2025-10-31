@@ -277,7 +277,7 @@ const App: React.FC = () => {
         }
     };
 
-    const { totalItems, subtotal } = useMemo(() => cartItems.reduce((acc, item) => {
+    const { totalItems, subtotal } = useMemo(() => cartItems.reduce((acc: { totalItems: number; subtotal: number }, item: CartItem) => {
         acc.totalItems += item.quantity;
         acc.subtotal += item.totalPrice * item.quantity;
         return acc;
