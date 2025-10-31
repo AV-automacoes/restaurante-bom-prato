@@ -9,7 +9,6 @@ import OrderHistoryModal from './components/OrderHistoryModal';
 import OrderStatusPage from './components/OrderStatusPage';
 import DayFilter from './components/DayFilter';
 import MenuCategoryComponent from './components/MenuCategory';
-import AiRecommenderModal from './components/AiRecommenderModal';
 import RestaurantStatusBanner from './components/RestaurantStatusBanner';
 
 const generateWhatsAppMessage = (order: Order): string => {
@@ -157,7 +156,6 @@ const App: React.FC = () => {
     const [isCustomizationModalOpen, setIsCustomizationModalOpen] = useState(false);
     const [isCartModalOpen, setIsCartModalOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
-    const [isAiModalOpen, setIsAiModalOpen] = useState(false);
     
     const [orderHistory, setOrderHistory] = useState<Order[]>([]);
     const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
@@ -277,11 +275,13 @@ const App: React.FC = () => {
         }
     };
 
-    const { totalItems, subtotal } = useMemo(() => cartItems.reduce((acc: { totalItems: number; subtotal: number }, item: CartItem) => {
+    const calculateCartTotals = (acc: { totalItems: number; subtotal: number }, item: CartItem) => {
         acc.totalItems += item.quantity;
         acc.subtotal += item.totalPrice * item.quantity;
         return acc;
-    }, { totalItems: 0, subtotal: 0 }), [cartItems]);
+    };
+
+    const { totalItems, subtotal } = useMemo(() => cartItems.reduce(calculateCartTotals, { totalItems: 0, subtotal: 0 }), [cartItems]);
 
     const handleCheckout = async (details: { payment: { method: PaymentMethod; cashForChange?: number }, customerInfo: CustomerInfo, deliveryType: DeliveryType }) => {
         if (cartItems.length === 0 || !restaurantStatus.isOpen) return;
@@ -343,15 +343,6 @@ const App: React.FC = () => {
             )
         })).filter(category => category.items.length > 0);
     }, [menuData, searchQuery]);
-
-    const handleSelectRecommendation = (itemName: string) => {
-        const allItems = menuData.flatMap(c => c.items);
-        const recommendedItem = allItems.find(item => item.name === itemName);
-        if (recommendedItem) {
-            setIsAiModalOpen(false);
-            handleAddItemClick(recommendedItem);
-        }
-    };
     
     const dayNames = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
     const currentDayName = dayNames[selectedDay];
@@ -364,7 +355,6 @@ const App: React.FC = () => {
         <div className="font-sans antialiased text-gray-800 pb-28">
             <Header
                 onHistoryClick={() => setIsHistoryModalOpen(true)}
-                onAiClick={() => setIsAiModalOpen(true)}
             />
             
             {isBannerVisible && !restaurantStatus.isOpen && (
@@ -415,7 +405,6 @@ const App: React.FC = () => {
             )}
             {isCartModalOpen && <CartModal cartItems={cartItems} onClose={() => setIsCartModalOpen(false)} onUpdateQuantity={handleUpdateCartItemQuantity} onRemoveItem={handleRemoveCartItem} onEditItem={handleEditItem} totalPrice={subtotal} onCheckout={handleCheckout} orderHistory={orderHistory} isOpen={restaurantStatus.isOpen} />}
             {isHistoryModalOpen && <OrderHistoryModal orders={orderHistory} onClose={() => setIsHistoryModalOpen(false)} onReorder={handleReorder} onViewOrder={(order) => { setIsHistoryModalOpen(false); setViewingOrder(order); }} />}
-            {isAiModalOpen && <AiRecommenderModal menuData={menuData} onClose={() => setIsAiModalOpen(false)} onSelectRecommendation={handleSelectRecommendation} />}
             {pixOrder && (
                 <PixConfirmationModal 
                     pixKey={RESTAURANT_WHATSAPP_NUMBER}
