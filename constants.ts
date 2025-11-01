@@ -1,31 +1,81 @@
-import { MenuCategory, CustomizationOption } from './types';
+import { MenuCategory, CustomizationOption, RestaurantStatus } from './types';
 
 export const DELIVERY_FEE = 2.00;
 export const RESTAURANT_WHATSAPP_NUMBER = '5537998260587';
 
-export const checkRestaurantStatus = (): { isOpen: boolean; message: string } => {
+export const operatingHours: { [key: number]: { open: string; close: string } | null } = {
+    1: { open: '06:00', close: '13:30' }, // Monday
+    2: { open: '06:00', close: '13:30' }, // Tuesday
+    3: { open: '06:00', close: '13:30' }, // Wednesday
+    4: { open: '06:00', close: '13:30' }, // Thursday
+    5: { open: '06:00', close: '13:30' }, // Friday
+    6: { open: '06:00', close: '13:30' }, // Saturday
+    0: null, // Sunday
+};
+
+
+export const checkRestaurantStatus = (): RestaurantStatus => {
     const now = new Date();
-    const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
-    const currentHour = now.getHours();
+    const dayOfWeek = now.getDay();
+    const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
+    
+    const parseTime = (time: string) => {
+        const [hour, minute] = time.split(':').map(Number);
+        return hour * 60 + minute;
+    };
 
-    const isOpenToday = dayOfWeek >= 1 && dayOfWeek <= 6; // Monday to Saturday
-    const withinOperatingHours = currentHour >= 6 && currentHour < 13; // 6:00 AM to 12:59 PM
+    const todayHours = operatingHours[dayOfWeek];
 
-    if (isOpenToday && withinOperatingHours) {
-        return { isOpen: true, message: 'Estamos abertos!' };
+    // Check if open now
+    if (todayHours) {
+        const openTotalMinutes = parseTime(todayHours.open);
+        const closeTotalMinutes = parseTime(todayHours.close);
+        
+        if (currentTotalMinutes >= openTotalMinutes && currentTotalMinutes < closeTotalMinutes) {
+            return {
+                isOpen: true,
+                statusText: 'Aberto agora',
+                detailsText: `Fecha hoje às ${todayHours.close}`,
+            };
+        }
+
+        // It's a working day, but before opening hours
+        if (currentTotalMinutes < openTotalMinutes) {
+             return {
+                isOpen: false,
+                statusText: 'Fechado agora',
+                detailsText: `Abre hoje às ${todayHours.open}`,
+            };
+        }
     }
 
-    // Find next opening day
-    let nextOpenDayIndex = dayOfWeek + 1;
-    if (dayOfWeek === 6) nextOpenDayIndex = 1; // If it's Saturday, next open is Monday
-    if (dayOfWeek === 0) nextOpenDayIndex = 1; // If it's Sunday, next open is Monday
+    // It's closed. Find the next opening time.
+    let nextOpenDayIndex = dayOfWeek;
+    for (let i = 0; i < 7; i++) {
+        nextOpenDayIndex = (dayOfWeek + 1 + i) % 7;
+        if (operatingHours[nextOpenDayIndex]) {
+            break;
+        }
+    }
+
+    const nextDayHours = operatingHours[nextOpenDayIndex];
+    if (!nextDayHours) { // Should not happen if at least one day is open
+         return { isOpen: false, statusText: 'Fechado', detailsText: 'Fechado indefinidamente' };
+    }
     
-    const dayNames = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
-    const nextOpenDayName = (dayOfWeek >= 1 && dayOfWeek <= 5 && currentHour >= 13) ? 'amanhã' : dayNames[nextOpenDayIndex];
+    const dayNames = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
     
+    let dayLabel = `na ${dayNames[nextOpenDayIndex]}`;
+    const tomorrow = new Date();
+    tomorrow.setDate(now.getDate() + 1);
+    if (nextOpenDayIndex === tomorrow.getDay()) {
+        dayLabel = "amanhã";
+    }
+
     return {
         isOpen: false,
-        message: `Estamos fechados. Abrimos ${nextOpenDayName} às 6:00.`,
+        statusText: 'Fechado agora',
+        detailsText: `Abre ${dayLabel} às ${nextDayHours.open}`,
     };
 };
 
