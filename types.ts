@@ -68,6 +68,12 @@ export interface OrderStatusUpdate {
     timestamp: number;
 }
 
+export interface RestaurantStatus {
+    isOpen: boolean;
+    statusText: string;
+    detailsText: string;
+}
+
 export interface Order {
     id: string; // internal unique ID
     displayId: string; // user-facing ID like #12345
