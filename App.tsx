@@ -1,15 +1,15 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { getMenuForDay, DELIVERY_FEE, RESTAURANT_WHATSAPP_NUMBER, checkRestaurantStatus } from './constants';
-import { CartItem, MenuItem as MenuItemType, Order, OrderStatus, PaymentMethod, CustomerInfo, DeliveryType, OrderStatusUpdate, CustomizationOption } from './types';
+import { CartItem, MenuItem as MenuItemType, Order, OrderStatus, PaymentMethod, CustomerInfo, DeliveryType, OrderStatusUpdate, CustomizationOption, RestaurantStatus } from './types';
 import Header from './components/Header';
-import Cart from './components/Cart';
 import CustomizationModal from './components/CustomizationModal';
 import CartModal from './components/CartModal';
 import OrderHistoryModal from './components/OrderHistoryModal';
 import OrderStatusPage from './components/OrderStatusPage';
 import DayFilter from './components/DayFilter';
 import MenuCategoryComponent from './components/MenuCategory';
-import RestaurantStatusBanner from './components/RestaurantStatusBanner';
+import OperatingHoursBanner from './components/OperatingHoursBanner';
+import OperatingHoursModal from './components/OperatingHoursModal';
 
 const generateWhatsAppMessage = (order: Order): string => {
     let message = `✅ *SEU PEDIDO FOI CONFIRMADO*, e está aguardando produção!\n`;
@@ -156,26 +156,22 @@ const App: React.FC = () => {
     const [isCustomizationModalOpen, setIsCustomizationModalOpen] = useState(false);
     const [isCartModalOpen, setIsCartModalOpen] = useState(false);
     const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
+    const [isHoursModalOpen, setIsHoursModalOpen] = useState(false);
     
     const [orderHistory, setOrderHistory] = useState<Order[]>([]);
     const [viewingOrder, setViewingOrder] = useState<Order | null>(null);
     const [pixOrder, setPixOrder] = useState<Order | null>(null); // State for Pix modal
     const [searchQuery, setSearchQuery] = useState('');
 
-    const [restaurantStatus, setRestaurantStatus] = useState(checkRestaurantStatus());
-    const [isBannerVisible, setIsBannerVisible] = useState(true);
+    const [restaurantStatus, setRestaurantStatus] = useState<RestaurantStatus>(checkRestaurantStatus());
 
     useEffect(() => {
         const statusCheckInterval = setInterval(() => {
-            const newStatus = checkRestaurantStatus();
-            if (newStatus.isOpen !== restaurantStatus.isOpen) {
-                setRestaurantStatus(newStatus);
-                setIsBannerVisible(true); // Show banner again if status changes
-            }
-        }, 60000); // Check every minute
+            setRestaurantStatus(checkRestaurantStatus());
+        }, 30000); // Check every 30 seconds
 
         return () => clearInterval(statusCheckInterval);
-    }, [restaurantStatus.isOpen]);
+    }, []);
 
 
     useEffect(() => {
@@ -352,32 +348,22 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="font-sans antialiased text-gray-800 pb-28">
+        <div className="font-sans antialiased text-gray-800 bg-gray-100">
             <Header
-                onHistoryClick={() => setIsHistoryModalOpen(true)}
+                cartItemCount={totalItems}
+                onCartClick={() => setIsCartModalOpen(true)}
+                searchQuery={searchQuery}
+                onSearchChange={(e) => setSearchQuery(e.target.value)}
             />
-            
-            {isBannerVisible && !restaurantStatus.isOpen && (
-                <RestaurantStatusBanner message={restaurantStatus.message} onDismiss={() => setIsBannerVisible(false)} />
-            )}
             
             <main className="max-w-4xl mx-auto p-4">
                  <div className="flex justify-center mb-6">
                     <DayFilter selectedDay={selectedDay} onSelectDay={setSelectedDay} />
                 </div>
 
-                <h2 className="text-2xl font-bold mb-2 text-center text-gray-800">Cardápio de {currentDayName}</h2>
+                <OperatingHoursBanner status={restaurantStatus} onViewHoursClick={() => setIsHoursModalOpen(true)} />
 
-                <div className="relative mb-6 max-w-lg mx-auto">
-                    <input
-                        type="text"
-                        placeholder="Buscar no cardápio..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-white pl-10 pr-4 py-3 border border-gray-300 rounded-full shadow-sm focus:ring-2 focus:ring-red-500 focus:outline-none"
-                    />
-                    <svg className="w-5 h-5 text-gray-400 absolute left-4 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                </div>
+                <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Cardápio de {currentDayName}</h2>
                 
                 {filteredMenuData.length > 0 ? (
                     filteredMenuData.map(category => (
@@ -391,7 +377,6 @@ const App: React.FC = () => {
                 )}
             </main>
 
-            {cartItems.length > 0 && <Cart totalItems={totalItems} totalPrice={subtotal} onViewCartClick={() => setIsCartModalOpen(true)} />}
             {isCustomizationModalOpen && selectedItem && (
                 <CustomizationModal 
                     item={selectedItem}
@@ -405,6 +390,7 @@ const App: React.FC = () => {
             )}
             {isCartModalOpen && <CartModal cartItems={cartItems} onClose={() => setIsCartModalOpen(false)} onUpdateQuantity={handleUpdateCartItemQuantity} onRemoveItem={handleRemoveCartItem} onEditItem={handleEditItem} totalPrice={subtotal} onCheckout={handleCheckout} orderHistory={orderHistory} isOpen={restaurantStatus.isOpen} />}
             {isHistoryModalOpen && <OrderHistoryModal orders={orderHistory} onClose={() => setIsHistoryModalOpen(false)} onReorder={handleReorder} onViewOrder={(order) => { setIsHistoryModalOpen(false); setViewingOrder(order); }} />}
+            {isHoursModalOpen && <OperatingHoursModal onClose={() => setIsHoursModalOpen(false)} />}
             {pixOrder && (
                 <PixConfirmationModal 
                     pixKey={RESTAURANT_WHATSAPP_NUMBER}
