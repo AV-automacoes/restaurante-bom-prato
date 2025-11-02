@@ -15,6 +15,14 @@ export const operatingHours: { [key: number]: { open: string; close: string } | 
 
 
 export const checkRestaurantStatus = (): RestaurantStatus => {
+    // Temporarily unlocked for recording.
+    return {
+        isOpen: true,
+        statusText: 'Aberto agora',
+        detailsText: 'Disponível para pedidos',
+    };
+    
+    /*
     const now = new Date();
     const dayOfWeek = now.getDay();
     const currentTotalMinutes = now.getHours() * 60 + now.getMinutes();
@@ -77,6 +85,7 @@ export const checkRestaurantStatus = (): RestaurantStatus => {
         statusText: 'Fechado agora',
         detailsText: `Abre ${dayLabel} às ${nextDayHours.open}`,
     };
+    */
 };
 
 
